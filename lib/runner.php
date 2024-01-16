@@ -2,12 +2,15 @@
 
 namespace WP_Parser;
 
-use phpDocumentor\Reflection\BaseReflector;
+/*use phpDocumentor\Reflection\BaseReflector;
 use phpDocumentor\Reflection\ClassReflector\MethodReflector;
 use phpDocumentor\Reflection\ClassReflector\PropertyReflector;
 use phpDocumentor\Reflection\FunctionReflector;
 use phpDocumentor\Reflection\FunctionReflector\ArgumentReflector;
-use phpDocumentor\Reflection\ReflectionAbstract;
+use phpDocumentor\Reflection\ReflectionAbstract;*/
+
+use phpDocumentor\Reflection\Php\ProjectFactory;
+use phpDocumentor\Reflection\File\LocalFile;
 
 /**
  * @param string $directory
@@ -47,18 +50,18 @@ function get_wp_files( $directory ) {
 function parse_files( $files, $root ) {
 	$output = array();
 
+	$file_objects   = [];
+	$project_factory = ProjectFactory::createInstance();
 	foreach ( $files as $filename ) {
-		$file = new File_Reflector( $filename );
+		$file_objects[] = new LocalFile( $filename );
+	}
+	$project        = $project_factory->create( 'phpdoc-parser', $file_objects );
 
-		$path = ltrim( substr( $filename, strlen( $root ) ), DIRECTORY_SEPARATOR );
-		$file->setFilename( $path );
-
-		$file->process();
-
+	foreach ( $project->getFiles() as $file ) {
 		// TODO proper exporter
 		$out = array(
 			'file' => export_docblock( $file ),
-			'path' => str_replace( DIRECTORY_SEPARATOR, '/', $file->getFilename() ),
+			'path' => str_replace( DIRECTORY_SEPARATOR, '/', $file->getName() ),
 			'root' => $root,
 		);
 
@@ -69,35 +72,37 @@ function parse_files( $files, $root ) {
 		foreach ( $file->getIncludes() as $include ) {
 			$out['includes'][] = array(
 				'name' => $include->getName(),
-				'line' => $include->getLineNumber(),
+				'line' => $include->getLocation()->getLineNumber(),
 				'type' => $include->getType(),
 			);
 		}
 
 		foreach ( $file->getConstants() as $constant ) {
 			$out['constants'][] = array(
-				'name'  => $constant->getShortName(),
-				'line'  => $constant->getLineNumber(),
+				'name'  => $constant->getName(),
+				'line'  => $constant->getLocation()->getLineNumber(),
 				'value' => $constant->getValue(),
 			);
 		}
 
+		// TODO: Hmmmm, the file parser is now a final.
 		if ( ! empty( $file->uses['hooks'] ) ) {
 			$out['hooks'] = export_hooks( $file->uses['hooks'] );
 		}
 
 		foreach ( $file->getFunctions() as $function ) {
 			$func = array(
-				'name'      => $function->getShortName(),
-				'namespace' => $function->getNamespace(),
-				'aliases'   => $function->getNamespaceAliases(),
-				'line'      => $function->getLineNumber(),
-				'end_line'  => $function->getNode()->getAttribute( 'endLine' ),
+				'name'      => $function->getName(),
+				'namespace' => ltrim( substr( (string) $function->getFqsen(), 0, -1 * strlen( $function->getName() ) - 3 ), '\\' ),
+				'aliases'   => [], //$function->getNamespaceAliases(),
+				'line'      => $function->getLocation()->getLineNumber(),
+				'end_line'  => $function->getEndLocation()->getLineNumber(),
 				'arguments' => export_arguments( $function->getArguments() ),
 				'doc'       => export_docblock( $function ),
 				'hooks'     => array(),
 			);
 
+			// TODO: Hmmmmm this will be provided by our file class too I think..
 			if ( ! empty( $function->uses ) ) {
 				$func['uses'] = export_uses( $function->uses );
 
@@ -111,13 +116,13 @@ function parse_files( $files, $root ) {
 
 		foreach ( $file->getClasses() as $class ) {
 			$class_data = array(
-				'name'       => $class->getShortName(),
-				'namespace'  => $class->getNamespace(),
-				'line'       => $class->getLineNumber(),
-				'end_line'   => $class->getNode()->getAttribute( 'endLine' ),
+				'name'       => $class->getName(),
+				'namespace'  => ltrim( substr( (string) $class->getFqsen(), 0, -1 * strlen( $class->getName() ) - 3 ), '\\' ),
+				'line'       => $class->getLocation()->getLineNumber(),
+				'end_line'   => $class->getEndLocation()->getLineNumber(),
 				'final'      => $class->isFinal(),
 				'abstract'   => $class->isAbstract(),
-				'extends'    => $class->getParentClass(),
+				'extends'    => (string) $class->getParent(),
 				'implements' => $class->getInterfaces(),
 				'properties' => export_properties( $class->getProperties() ),
 				'methods'    => export_methods( $class->getMethods() ),
@@ -204,8 +209,8 @@ function export_docblock( $element ) {
 	}
 
 	$output = array(
-		'description'      => preg_replace( '/[\n\r]+/', ' ', $docblock->getShortDescription() ),
-		'long_description' => fix_newlines( $docblock->getLongDescription()->getFormattedContents() ),
+		'description'      => preg_replace( '/[\n\r]+/', ' ', $docblock->getSummary() ),
+		'long_description' => fix_newlines( (string) $docblock->getDescription()->render() ),
 		'tags'             => array(),
 	);
 
@@ -257,8 +262,8 @@ function export_hooks( array $hooks ) {
 	foreach ( $hooks as $hook ) {
 		$out[] = array(
 			'name'      => $hook->getName(),
-			'line'      => $hook->getLineNumber(),
-			'end_line'  => $hook->getNode()->getAttribute( 'endLine' ),
+			'line'      => $hook->getLocation()->getLineNumber(),
+			'end_line'  => $hook->getEndLocation()->getLineNumber(),
 			'type'      => $hook->getType(),
 			'arguments' => $hook->getArgs(),
 			'doc'       => export_docblock( $hook ),
@@ -298,8 +303,8 @@ function export_properties( array $properties ) {
 	foreach ( $properties as $property ) {
 		$out[] = array(
 			'name'        => $property->getName(),
-			'line'        => $property->getLineNumber(),
-			'end_line'    => $property->getNode()->getAttribute( 'endLine' ),
+			'line'        => $property->getLocation()->getLineNumber(),
+			'end_line'    => $property->getEndLocation()->getLineNumber(),
 			'default'     => $property->getDefault(),
 //			'final' => $property->isFinal(),
 			'static'      => $property->isStatic(),
@@ -322,11 +327,11 @@ function export_methods( array $methods ) {
 	foreach ( $methods as $method ) {
 
 		$method_data = array(
-			'name'       => $method->getShortName(),
-			'namespace'  => $method->getNamespace(),
-			'aliases'    => $method->getNamespaceAliases(),
-			'line'       => $method->getLineNumber(),
-			'end_line'   => $method->getNode()->getAttribute( 'endLine' ),
+			'name'       => $method->getName(),
+			'namespace'  => $method->getFqsen(),
+			'aliases'    => [],//$method->getNamespaceAliases(),
+			'line'       => $method->getLocation()->getLineNumber(),
+			'end_line'   => $method->getEndLocation()->getLineNumber(),
 			'final'      => $method->isFinal(),
 			'abstract'   => $method->isAbstract(),
 			'static'     => $method->isStatic(),
@@ -377,8 +382,8 @@ function export_uses( array $uses ) {
 						'name'     => $name[1],
 						'class'    => $name[0],
 						'static'   => $element->isStatic(),
-						'line'     => $element->getLineNumber(),
-						'end_line' => $element->getNode()->getAttribute( 'endLine' ),
+						'line'     => $element->getLocation()->getLineNumber(),
+						'end_line' => $element->getEndLocation()->getLineNumber(),
 					);
 					break;
 
@@ -386,8 +391,8 @@ function export_uses( array $uses ) {
 				case 'functions':
 					$out[ $type ][] = array(
 						'name'     => $name,
-						'line'     => $element->getLineNumber(),
-						'end_line' => $element->getNode()->getAttribute( 'endLine' ),
+						'line'     => $element->getLocation()->getLineNumber(),
+						'end_line' => $element->getEndLocation()->getLineNumber(),
 					);
 
 					if ( '_deprecated_file' === $name
