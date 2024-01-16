@@ -12,6 +12,10 @@ use phpDocumentor\Reflection\ReflectionAbstract;*/
 use phpDocumentor\Reflection\Php\ProjectFactory;
 use phpDocumentor\Reflection\File\LocalFile;
 
+use phpDocumentor\Reflection\DocBlockFactory;
+use PhpParser\PrettyPrinter\Standard as PrettyPrinter;
+
+
 /**
  * @param string $directory
  *
@@ -52,6 +56,17 @@ function parse_files( $files, $root ) {
 
 	$file_objects   = [];
 	$project_factory = ProjectFactory::createInstance();
+	
+	// https://github.com/phpDocumentor/Reflection/blob/770440f9922d1e3d118d234fd6ab72048ddc5b05/src/phpDocumentor/Reflection/Php/ProjectFactory.php#L49
+	require_once __DIR__ . '/class-strategy-hook.php';
+
+	$project_factory->addStrategy(
+		new Strategy_Hook(
+			DocBlockFactory::createInstance(),
+			new PrettyPrinter()
+		)
+	);
+
 	foreach ( $files as $filename ) {
 		$file_objects[] = new LocalFile( $filename );
 	}
