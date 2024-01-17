@@ -278,7 +278,7 @@ function export_hooks( array $hooks ) {
 			'name'      => $hook->getHookName(),
 			'line'      => $hook->getLocation()->getLineNumber(),
 			'end_line'  => $hook->getEndLocation()->getLineNumber(),
-			'type'      => false, // Unknown $hook->getType(),
+			'type'      => $hook->getHookType(),
 			'arguments' => $hook->getArguments(),
 			'doc'       => export_docblock( $hook ),
 		);

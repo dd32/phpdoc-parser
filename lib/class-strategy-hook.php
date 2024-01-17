@@ -206,6 +206,10 @@ class Hook_ implements Element, MetaDataContainerInterface {
 		return $hook_name;
 	}
 
+	public function getHookType() {
+		return ltrim( (string) $this->fqsen, '\\' );
+	}
+
     /**
      * Returns the arguments of this function.
      *
