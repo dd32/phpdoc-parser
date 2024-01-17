@@ -23,6 +23,7 @@ use phpDocumentor\Reflection\Types\Mixed_;
 use PhpParser\ConstExprEvaluationException;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\Assign;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Expression;
@@ -68,16 +69,26 @@ class Strategy_Hook extends AbstractFactory {
 	}
 
 	public function matches(ContextStack $context, object $object): bool {
-        if (
-			! $object instanceof Expression ||
-			! $object->expr instanceof FuncCall ||
-			! $object->expr->name instanceof Name
-		) {
+		if ( ! $object instanceof Expression ) {
 			return false;
 		}
 
-		return in_array(
-			(string) $object->expr->name, 
+		$function = '';
+
+		if (
+			$object->expr instanceof FuncCall && 
+			$object->expr->name instanceof Name
+		) {
+			$function = (string) $object->expr->name;
+		} elseif (
+			$object->expr instanceof Assign &&
+			$object->expr->expr->name instanceof Name
+		) {
+			$function = (string) $object->expr->expr->name;
+		}
+
+		return $function && in_array(
+			$function, 
 			$this->functions_to_match,
 			true
 		);
@@ -98,9 +109,17 @@ class Strategy_Hook extends AbstractFactory {
 		StrategyContainer $strategies
 	): void {
 		$expression = $object->expr;
-		assert($expression instanceof FuncCall);
+		assert( $expression instanceof FuncCall || $expression instanceof Assign );
 
-		[$name, $value] = $expression->args;
+		if ( $expression instanceof FuncCall ) {
+			[$name, $value] = $expression->args;
+			$function       = $expression->name;
+			$expr           = $object->expr;
+		} elseif ( $expression instanceof Assign ) {
+			[$name, $value] = $expression->expr->args;
+			$function       = $expression->expr->name;
+			$expr           = $object->expr->expr;
+		}
 
 		// We cannot calculate the name of a variadic consuming define.
 		if ($name instanceof VariadicPlaceholder || $value instanceof VariadicPlaceholder) {
@@ -112,8 +131,8 @@ class Strategy_Hook extends AbstractFactory {
 		assert($file instanceof FileElement);
 
 		// do_action(), apply_filters(), etc.
-		$fqsen     = new Fqsen( '\\' . $object->expr->name );
 		$hook_name = $this->valueConverter->prettyPrintExpr( $name->value );
+		$fqsen     = new Fqsen( '\\' . $function . '\\' . sha1( $hook_name ) );
 
 		$hook = new Hook_(
 			$fqsen,
@@ -125,10 +144,10 @@ class Strategy_Hook extends AbstractFactory {
 			/* return by ref */
 		);
 
-		foreach ( array_slice( $object->expr->args, 1 ) as $param ) {
+		foreach ( array_slice( $expr->args, 1 ) as $param ) {
 			$hook->addArgument(
 				new Argument(
-					is_string($param->value->var->name) ? $param->value->var->name : $this->valueConverter->prettyPrintExpr($param->value),
+					$this->valueConverter->prettyPrintExpr($param->value),
 					new Mixed_, /* Can't have a type specified */
 					null, /* Can't have a default value */
 					$param->byRef,
@@ -239,7 +258,8 @@ class Hook_ implements Element, MetaDataContainerInterface {
 	}
 
 	public function getHookType() {
-		$function = ltrim( (string) $this->fqsen, '\\' );
+		// \\do_action\\md5hereofthehook
+		$function = explode( '\\', (string) $this->fqsen )[1];
 
 		$type     = 'filter';
 		switch ( (string) $function ) {

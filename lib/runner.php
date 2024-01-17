@@ -316,13 +316,13 @@ function export_properties( array $properties ) {
 
 	foreach ( $properties as $property ) {
 		$out[] = array(
-			'name'        => $property->getName(),
+			'name'        => '$' . $property->getName(),
 			'line'        => $property->getLocation()->getLineNumber(),
 			'end_line'    => $property->getEndLocation()->getLineNumber(),
 			'default'     => $property->getDefault(),
 //			'final' => $property->isFinal(),
 			'static'      => $property->isStatic(),
-			'visibility'  => $property->getVisibility(),
+			'visibility'  => (string) $property->getVisibility(),
 			'doc'         => export_docblock( $property ),
 		);
 	}
@@ -342,14 +342,14 @@ function export_methods( array $methods ) {
 
 		$method_data = array(
 			'name'       => $method->getName(),
-			'namespace'  => $method->getFqsen(),
+			'namespace'  => (string) $method->getFqsen(),
 			'aliases'    => [],//$method->getNamespaceAliases(),
 			'line'       => $method->getLocation()->getLineNumber(),
 			'end_line'   => $method->getEndLocation()->getLineNumber(),
 			'final'      => $method->isFinal(),
 			'abstract'   => $method->isAbstract(),
 			'static'     => $method->isStatic(),
-			'visibility' => $method->getVisibility(),
+			'visibility' => (string) $method->getVisibility(),
 			'arguments'  => export_arguments( $method->getArguments() ),
 			'doc'        => export_docblock( $method ),
 		);
