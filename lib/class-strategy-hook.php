@@ -193,21 +193,62 @@ class Hook_ implements Element, MetaDataContainerInterface {
     }
 
 	public function getHookName() {
-		// TODO... Need to adjust prettyPrintExpr to something expected.
-		$hook_name = $this->hook_name;
-		$hook_name = trim( $hook_name, '"\'' );
+		return $this->cleanupName( $this->hook_name );
+	}
 
-		// Variables should be encoded as `{$varaible}`, unless already as `{$variable}`.
-		$hook_name = preg_replace( '/(?<!{)(\$[\w:>-]+)/', '{\1}', $hook_name );
+	/**
+	 * @param string $name
+	 *
+	 * @return string
+	 */
+	private function cleanupName( $name ) {
+		$matches = array();
 
-		// Remove concat..
-		$hook_name = preg_replace( '/[\'"]?\s*\.\s*[\'"]?/', '', $hook_name );
+		// quotes on both ends of a string
+		if ( preg_match( '/^[\'"]([^\'"]*)[\'"]$/', $name, $matches ) ) {
+			return $matches[1];
+		}
 
-		return $hook_name;
+		// two concatenated things, last one of them a variable
+		if ( preg_match(
+			'/(?:[\'"]([^\'"]*)[\'"]\s*\.\s*)?' . // First filter name string (optional)
+			'(\$[^\s]*)' .                        // Dynamic variable
+			'(?:\s*\.\s*[\'"]([^\'"]*)[\'"])?/',  // Second filter name string (optional)
+			$name, $matches ) ) {
+
+			if ( isset( $matches[3] ) ) {
+				return $matches[1] . '{' . $matches[2] . '}' . $matches[3];
+			} else {
+				return $matches[1] . '{' . $matches[2] . '}';
+			}
+		}
+
+		return $name;
 	}
 
 	public function getHookType() {
-		return ltrim( (string) $this->fqsen, '\\' );
+		$function = ltrim( (string) $this->fqsen, '\\' );
+
+		$type     = 'filter';
+		switch ( (string) $function ) {
+			case 'do_action':
+				$type = 'action';
+				break;
+			case 'do_action_ref_array':
+				$type = 'action_reference';
+				break;
+			case 'do_action_deprecated':
+				$type = 'action_deprecated';
+				break;
+			case 'apply_filters_ref_array':
+				$type = 'filter_reference';
+				break;
+			case 'apply_filters_deprecated';
+				$type = 'filter_deprecated';
+				break;
+		}
+
+		return $type;
 	}
 
     /**
