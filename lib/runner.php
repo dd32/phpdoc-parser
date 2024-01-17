@@ -233,14 +233,16 @@ function export_docblock( $element ) {
 			'name'    => $tag->getName(),
 			'content' => preg_replace( '/[\n\r]+/', ' ', format_description( $tag->getDescription() ) ),
 		);
-		if ( method_exists( $tag, 'getTypes' ) ) {
-			$tag_data['types'] = $tag->getTypes();
+		if ( method_exists( $tag, 'getType' ) ) {
+			$tag_data['types'] = array(
+				(string) $tag->getType()
+			);
 		}
 		if ( method_exists( $tag, 'getLink' ) ) {
 			$tag_data['link'] = $tag->getLink();
 		}
 		if ( method_exists( $tag, 'getVariableName' ) ) {
-			$tag_data['variable'] = $tag->getVariableName();
+			$tag_data['variable'] = '$' . $tag->getVariableName();
 		}
 		if ( method_exists( $tag, 'getReference' ) ) {
 			$tag_data['refers'] = $tag->getReference();
