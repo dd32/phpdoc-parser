@@ -76,7 +76,7 @@ class Strategy_Hook extends AbstractFactory {
 		$function = '';
 
 		if (
-			$object->expr instanceof FuncCall && 
+			$object->expr instanceof FuncCall &&
 			$object->expr->name instanceof Name
 		) {
 			$function = (string) $object->expr->name;
@@ -88,7 +88,7 @@ class Strategy_Hook extends AbstractFactory {
 		}
 
 		return $function && in_array(
-			$function, 
+			$function,
 			$this->functions_to_match,
 			true
 		);
