@@ -12,10 +12,12 @@ use phpDocumentor\Reflection\Fqsen;
 use phpDocumentor\Reflection\Location;
 use phpDocumentor\Reflection\Metadata\MetaDataContainer as MetaDataContainerInterface;
 //use phpDocumentor\Reflection\Php\Constant as ConstantElement;
+use phpDocumentor\Reflection\Php\Argument;
 use phpDocumentor\Reflection\Php\File as FileElement;
 use phpDocumentor\Reflection\Php\StrategyContainer;
 use phpDocumentor\Reflection\Php\ValueEvaluator\ConstantEvaluator;
 use phpDocumentor\Reflection\Php\MetadataContainer;
+use phpDocumentor\Reflection\Php\Factory\Type as FactoryType;
 use phpDocumentor\Reflection\Type;
 use phpDocumentor\Reflection\Types\Mixed_;
 use PhpParser\ConstExprEvaluationException;
@@ -123,7 +125,17 @@ class Strategy_Hook extends AbstractFactory {
 			/* return by ref */
 		);
 
-//		var_dump( $hook );
+		foreach ( array_slice( $object->expr->args, 1 ) as $param ) {
+			$hook->addArgument(
+				new Argument(
+					is_string($param->value->var->name) ? $param->value->var->name : $this->valueConverter->prettyPrintExpr($param->value),
+					new Mixed_, /* Can't have a type specified */
+					null, /* Can't have a default value */
+					$param->byRef,
+					false, /*$param->variadic,*/
+				)
+			);
+		}
 
 		if ( ! isset( $file->uses ) ) {
 			$file->uses = [];

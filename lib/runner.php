@@ -279,7 +279,7 @@ function export_hooks( array $hooks ) {
 			'line'      => $hook->getLocation()->getLineNumber(),
 			'end_line'  => $hook->getEndLocation()->getLineNumber(),
 			'type'      => $hook->getHookType(),
-			'arguments' => $hook->getArguments(),
+			'arguments' => export_arguments( $hook->getArguments() ),
 			'doc'       => export_docblock( $hook ),
 		);
 	}
@@ -299,7 +299,7 @@ function export_arguments( array $arguments ) {
 		$output[] = array(
 			'name'    => $argument->getName(),
 			'default' => $argument->getDefault(),
-			'type'    => $argument->getType(),
+			'type'    => $argument->getType(), // TODO What's this expected to be.
 		);
 	}
 
