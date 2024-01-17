@@ -100,7 +100,6 @@ function parse_files( $files, $root ) {
 			);
 		}
 
-		// TODO: Hmmmm, the file parser is now a final.
 		if ( ! empty( $file->uses['hooks'] ) ) {
 			$out['hooks'] = export_hooks( $file->uses['hooks'] );
 		}
@@ -109,7 +108,7 @@ function parse_files( $files, $root ) {
 			$func = array(
 				'name'      => $function->getName(),
 				'namespace' => ltrim( substr( (string) $function->getFqsen(), 0, -1 * strlen( $function->getName() ) - 3 ), '\\' ),
-				'aliases'   => [], //$function->getNamespaceAliases(),
+				'aliases'   => [], // Unknown $function->getNamespaceAliases(),
 				'line'      => $function->getLocation()->getLineNumber(),
 				'end_line'  => $function->getEndLocation()->getLineNumber(),
 				'arguments' => export_arguments( $function->getArguments() ),
@@ -276,11 +275,11 @@ function export_hooks( array $hooks ) {
 
 	foreach ( $hooks as $hook ) {
 		$out[] = array(
-			'name'      => $hook->getName(),
+			'name'      => $hook->getHookName(),
 			'line'      => $hook->getLocation()->getLineNumber(),
 			'end_line'  => $hook->getEndLocation()->getLineNumber(),
-			'type'      => $hook->getType(),
-			'arguments' => $hook->getArgs(),
+			'type'      => false, // Unknown $hook->getType(),
+			'arguments' => $hook->getArguments(),
 			'doc'       => export_docblock( $hook ),
 		);
 	}
