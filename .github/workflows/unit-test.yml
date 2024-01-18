@@ -13,6 +13,7 @@ jobs:
           matrix:
               php:
                 - '7.4'
+                - '8.0'
                 - '8.1'
       steps:
       - name: Checkout
@@ -23,6 +24,17 @@ jobs:
         with:
           php-version: '${{ matrix.php }}'
           coverage: none
+
+      - name: General debug information
+        run: |
+          php --version
+          composer --version
+          npm --version
+          node --version
+          curl --version
+          git --version
+          svn --version
+          locale -a
 
       # Ensure that Composer installs the correct versions of packages.
       - name: Override PHP version in composer.json
