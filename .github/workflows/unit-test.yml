@@ -3,29 +3,29 @@ name: Unit Tests
 on:
   pull_request:
   push:
-    branches:
-    - master
   workflow_dispatch:
 
 jobs:
     test-php:
       runs-on: ubuntu-latest
       strategy:
-          fail-fast: true
+          fail-fast: false
           matrix:
               php:
                 - '7.4'
+                - '8.1'
       steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up PHP
         uses: shivammathur/setup-php@e6f75134d35752277f093989e72e140eaa222f35 # v2.28.0
         with:
-              php-version: '${{ matrix.php }}'
-              coverage: none
+          php-version: '${{ matrix.php }}'
+          coverage: none
+
       - name: Install
-        run: |
-          npm install
-          composer install
+        run: composer install
+
       - name: Test
-        run: npm test
+        run: vendor/phpunit/phpunit/phpunit --verbose
