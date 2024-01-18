@@ -24,6 +24,10 @@ jobs:
           php-version: '${{ matrix.php }}'
           coverage: none
 
+      # Ensure that Composer installs the correct versions of packages.
+      - name: Override PHP version in composer.json
+        run: composer config platform.php ${{ matrix.php }}
+
       - name: Install
         run: composer install
 
