@@ -26,7 +26,9 @@ jobs:
 
       # Ensure that Composer installs the correct versions of packages.
       - name: Override PHP version in composer.json
-        run: composer config platform.php ${{ matrix.php }}
+        run: |
+          composer config platform.php ${{ matrix.php }}
+          rm composer.lock # Removing the lock file, as it may have a different PHP versions locked dependencies.
 
       - name: Install
         run: composer install
