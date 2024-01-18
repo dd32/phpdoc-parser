@@ -8,6 +8,9 @@ namespace WP_Parser\Tests;
 
 /**
  * Test that hooks are exported correctly.
+ *
+ * @group export
+ * @group export-hooks
  */
 class Export_Hooks extends Export_UnitTestCase {
 
@@ -34,6 +37,16 @@ class Export_Hooks extends Export_UnitTestCase {
 
 		$this->assertFileContainsHook(
 			array( 'name' => 'hook_{$object->property}_pre', 'line' => 7 )
+		);
+
+		$this->assertFileContainsHook(
+			array(
+				'type' => 'filter',
+				'name' => 'plain_filter',
+				'line' => 8,
+				'arguments.0.name' => '$variable',
+				'arguments.1.name' => '$filter_context'
+			)
 		);
 	}
 }
