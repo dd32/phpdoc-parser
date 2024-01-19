@@ -44,8 +44,8 @@ class Export_Hooks extends Export_UnitTestCase {
 				'type' => 'filter',
 				'name' => 'plain_filter',
 				'line' => 8,
-				'arguments.0.name' => '$variable',
-				'arguments.1.name' => '$filter_context'
+				'arguments.0' => '$variable',
+				'arguments.1' => '$filter_context'
 			)
 		);
 	}

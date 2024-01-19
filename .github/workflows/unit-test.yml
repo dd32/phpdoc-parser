@@ -15,35 +15,21 @@ jobs:
                 - '7.4'
                 - '8.0'
                 - '8.1'
+
+      env:
+        WP_ENV_PHP_VERSION: ${{ matrix.php }}
+
       steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@e6f75134d35752277f093989e72e140eaa222f35 # v2.28.0
-        with:
-          php-version: '${{ matrix.php }}'
-          coverage: none
-
-      - name: General debug information
-        run: |
-          php --version
-          composer --version
-          npm --version
-          node --version
-          curl --version
-          git --version
-          svn --version
-          locale -a
-
-      # Ensure that Composer installs the correct versions of packages.
-      - name: Override PHP version in composer.json
-        run: |
-          composer config platform.php ${{ matrix.php }}
-          rm composer.lock # Removing the lock file, as it may have a different PHP versions locked dependencies.
-
       - name: Install
-        run: composer install
+        run: npm install
+
+      - name: Setup Environment
+        run: |
+          rm composer.lock
+          npm run setup
 
       - name: Test
-        run: vendor/phpunit/phpunit/phpunit --verbose
+        run: npm run test
