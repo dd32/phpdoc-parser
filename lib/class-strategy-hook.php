@@ -22,10 +22,7 @@ use PhpParser\Node\Stmt\Expression;
 use PhpParser\PrettyPrinter\Standard as PrettyPrinter;
 
 /**
- * Strategy to convert WP Hooks expressions to ConstantElement
- *
- * @see ConstantElement
- * @see GlobalConstantIterator
+ * Strategy to convert WP Hooks expressions to Hook_.
  */
 class Strategy_Hook extends AbstractFactory {
 	protected $functions_to_match = [

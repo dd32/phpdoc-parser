@@ -59,9 +59,17 @@ function parse_files( $files, $root ) {
 	
 	// https://github.com/phpDocumentor/Reflection/blob/770440f9922d1e3d118d234fd6ab72048ddc5b05/src/phpDocumentor/Reflection/Php/ProjectFactory.php#L49
 	require_once __DIR__ . '/class-strategy-hook.php';
+	require_once __DIR__ . '/class-strategy-uses.php';
 
 	$project_factory->addStrategy(
 		new Strategy_Hook(
+			DocBlockFactory::createInstance(),
+			new PrettyPrinter()
+		)
+	);
+
+	$project_factory->addStrategy(
+		new Strategy_Uses(
 			DocBlockFactory::createInstance(),
 			new PrettyPrinter()
 		)
@@ -390,25 +398,28 @@ function export_uses( array $uses ) {
 		/** @var MethodReflector|FunctionReflector $element */
 		foreach ( $used_elements as $element ) {
 
-			$name = $element->getName();
-
 			switch ( $type ) {
 				case 'methods':
+					[ $class, $element ] = $element;
+					$name                = (string) $element->name;
+//var_dump( $element );
 					$out[ $type ][] = array(
-						'name'     => $name[1],
-						'class'    => $name[0],
-						'static'   => $element->isStatic(),
-						'line'     => $element->getLocation()->getLineNumber(),
-						'end_line' => $element->getEndLocation()->getLineNumber(),
+						'name'     => $name,
+						'class'    => $class,
+						'static'   => ( 'Expr_StaticCall' === $element->getType() ), // TODO?
+						'line'     => $element->getStartLine(),
+						'end_line' => $element->getEndLine(),
 					);
 					break;
 
 				default:
 				case 'functions':
+					$name = (string) $element->name;
+
 					$out[ $type ][] = array(
 						'name'     => $name,
-						'line'     => $element->getLocation()->getLineNumber(),
-						'end_line' => $element->getEndLocation()->getLineNumber(),
+						'line'     => $element->getStartLine(),
+						'end_line' => $element->getEndLine(),
 					);
 
 					if ( '_deprecated_file' === $name
@@ -416,6 +427,7 @@ function export_uses( array $uses ) {
 						|| '_deprecated_argument' === $name
 						|| '_deprecated_hook' === $name
 					) {
+						// TODO
 						$arguments = $element->getNode()->args;
 
 						$out[ $type ][0]['deprecation_version'] = $arguments[1]->value->value;
