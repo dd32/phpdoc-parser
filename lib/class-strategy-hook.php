@@ -2,38 +2,24 @@
 
 namespace WP_Parser;
 
-use phpDocumentor\Reflection\Php\Factory\AbstractFactory;
-use phpDocumentor\Reflection\Php\Factory\ContextStack;
-
 use phpDocumentor\Reflection\DocBlock;
 use phpDocumentor\Reflection\DocBlockFactoryInterface;
 use phpDocumentor\Reflection\Element;
 use phpDocumentor\Reflection\Fqsen;
 use phpDocumentor\Reflection\Location;
 use phpDocumentor\Reflection\Metadata\MetaDataContainer as MetaDataContainerInterface;
-//use phpDocumentor\Reflection\Php\Constant as ConstantElement;
 use phpDocumentor\Reflection\Php\Argument;
+use phpDocumentor\Reflection\Php\Factory\AbstractFactory;
+use phpDocumentor\Reflection\Php\Factory\ContextStack;
 use phpDocumentor\Reflection\Php\File as FileElement;
 use phpDocumentor\Reflection\Php\StrategyContainer;
-use phpDocumentor\Reflection\Php\ValueEvaluator\ConstantEvaluator;
 use phpDocumentor\Reflection\Php\MetadataContainer;
-use phpDocumentor\Reflection\Php\Factory\Type as FactoryType;
-use phpDocumentor\Reflection\Type;
 use phpDocumentor\Reflection\Types\Mixed_;
-use PhpParser\ConstExprEvaluationException;
-use PhpParser\Node\Arg;
-use PhpParser\Node\Expr;
 use PhpParser\Node\Expr\Assign;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt\Expression;
-use PhpParser\Node\VariadicPlaceholder;
 use PhpParser\PrettyPrinter\Standard as PrettyPrinter;
-
-
-use function assert;
-use function sprintf;
-
 
 /**
  * Strategy to convert WP Hooks expressions to ConstantElement
@@ -53,22 +39,18 @@ class Strategy_Hook extends AbstractFactory {
 
 	private PrettyPrinter $valueConverter;
 
-	private ConstantEvaluator $constantEvaluator;
-
 	/**
 	 * Initializes the object.
 	 */
 	public function __construct(
 		DocBlockFactoryInterface $docBlockFactory,
-		PrettyPrinter $prettyPrinter,
-		?ConstantEvaluator $constantEvaluator = null
+		PrettyPrinter $prettyPrinter
 	) {
 		parent::__construct($docBlockFactory);
 		$this->valueConverter = $prettyPrinter;
-		$this->constantEvaluator = $constantEvaluator ?? new ConstantEvaluator();
 	}
 
-	public function matches(ContextStack $context, object $object): bool {
+	public function matches( ContextStack $context, object $object ): bool {
 		if ( ! $object instanceof Expression ) {
 			return false;
 		}
@@ -134,9 +116,7 @@ class Strategy_Hook extends AbstractFactory {
 			$hook_name,
 			$this->createDocBlock($object->getDocComment(), $context->getTypeContext()),
 			new Location($object->getLine()),
-			new Location($object->getEndLine()),
-			/* return type */
-			/* return by ref */
+			new Location($object->getEndLine())
 		);
 
 		foreach ( array_slice( $expr->args, 1 ) as $param ) {
@@ -151,72 +131,55 @@ class Strategy_Hook extends AbstractFactory {
 			);
 		}
 
-		if ( ! isset( $file->uses ) ) {
-			$file->uses = [];
-		}
-		if ( ! isset( $file->uses['hooks'] ) ) {
-			$file->uses['hooks'] = [];
-		}
+		$file->uses          ??= [];
+		$file->uses['hooks'] ??= [];
 		$file->uses['hooks'][] = $hook;
-    }
+	}
 
 }
 
-
 // Based on Function_
 class Hook_ implements Element, MetaDataContainerInterface {
-    use MetadataContainer;
+	use MetadataContainer;
 
-    /** @var Fqsen Full Qualified Structural Element Name */
-    private Fqsen $fqsen;
+	/** @var Fqsen Full Qualified Structural Element Name */
+	private Fqsen $fqsen;
 
-    /** @var Argument[] */
-    private array $arguments = [];
+	/** @var Argument[] */
+	private array $arguments = [];
 
-    private ?DocBlock $docBlock;
+	private ?DocBlock $docBlock;
 
-    private Location $location;
+	private Location $location;
 
-    private Location $endLocation;
-
-    private Type $returnType;
-
-    private bool $hasReturnByReference;
+	private Location $endLocation;
 
 	public $hook_name = '';
 
-    /**
-     * Initializes the object.
-     */
-    public function __construct(
-        Fqsen $fqsen,
+	/**
+	 * Initializes the object.
+	 */
+	public function __construct(
+		Fqsen $fqsen,
 		$hook_name,
-        ?DocBlock $docBlock = null,
-        ?Location $location = null,
-        ?Location $endLocation = null,
-        ?Type $returnType = null,
-        bool $hasReturnByReference = false
-    ) {
-        if ($location === null) {
-            $location = new Location(-1);
-        }
+		?DocBlock $docBlock = null,
+		?Location $location = null,
+		?Location $endLocation = null
+	) {
+		if ( $location === null ) {
+			$location = new Location(-1);
+		}
 
-        if ($endLocation === null) {
-            $endLocation = new Location(-1);
-        }
+		if ( $endLocation === null ) {
+			$endLocation = new Location(-1);
+		}
 
-        if ($returnType === null) {
-            $returnType = new Mixed_();
-        }
-
-		$this->fqsen                = $fqsen;
-		$this->hook_name            = $hook_name;
-        $this->docBlock             = $docBlock;
-        $this->location             = $location;
-        $this->endLocation          = $endLocation;
-        $this->returnType           = $returnType;
-        $this->hasReturnByReference = $hasReturnByReference;
-    }
+		$this->fqsen       = $fqsen;
+		$this->hook_name   = $hook_name;
+		$this->docBlock    = $docBlock;
+		$this->location    = $location;
+		$this->endLocation = $endLocation;
+	}
 
 	public function getHookName() {
 		return $this->cleanupName( $this->hook_name );
@@ -278,65 +241,48 @@ class Hook_ implements Element, MetaDataContainerInterface {
 		return $type;
 	}
 
-    /**
-     * Returns the arguments of this function.
-     *
-     * @return Argument[]
-     */
-    public function getArguments(): array
-    {
-        return $this->arguments;
-    }
+	/**
+	 * Returns the arguments of this function.
+	 *
+	 * @return Argument[]
+	 */
+	public function getArguments(): array {
+		return $this->arguments;
+	}
 
-    /**
-     * Add an argument to the function.
-     */
-    public function addArgument(Argument $argument): void
-    {
-        $this->arguments[] = $argument;
-    }
+	/**
+	 * Add an argument to the function.
+	 */
+	public function addArgument(Argument $argument): void {
+		$this->arguments[] = $argument;
+	}
 
-    /**
-     * Returns the Fqsen of the element.
-     */
-    public function getFqsen(): Fqsen
-    {
-        return $this->fqsen;
-    }
+	/**
+	 * Returns the Fqsen of the element.
+	 */
+	public function getFqsen(): Fqsen {
+		return $this->fqsen;
+	}
 
-    /**
-     * Returns the name of the element.
-     */
-    public function getName(): string
-    {
-        return $this->fqsen->getName();
-    }
+	/**
+	 * Returns the name of the element.
+	 */
+	public function getName(): string {
+		return $this->fqsen->getName();
+	}
 
-    /**
-     * Returns the DocBlock of the element if available
-     */
-    public function getDocBlock(): ?DocBlock
-    {
-        return $this->docBlock;
-    }
+	/**
+	 * Returns the DocBlock of the element if available
+	 */
+	public function getDocBlock(): ?DocBlock {
+		return $this->docBlock;
+	}
 
-    public function getLocation(): Location
-    {
-        return $this->location;
-    }
+	public function getLocation(): Location {
+		return $this->location;
+	}
 
-    public function getEndLocation(): Location
-    {
-        return $this->endLocation;
-    }
-
-    public function getReturnType(): Type
-    {
-        return $this->returnType;
-    }
-
-    public function getHasReturnByReference(): bool
-    {
-        return $this->hasReturnByReference;
-    }
+	public function getEndLocation(): Location {
+		return $this->endLocation;
+	}
 }
