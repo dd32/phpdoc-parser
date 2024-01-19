@@ -82,6 +82,7 @@ class Strategy_Hook extends AbstractFactory {
 			$function = (string) $object->expr->name;
 		} elseif (
 			$object->expr instanceof Assign &&
+			$object->expr->expr instanceOf FuncCall &&
 			$object->expr->expr->name instanceof Name
 		) {
 			$function = (string) $object->expr->expr->name;
@@ -112,19 +113,13 @@ class Strategy_Hook extends AbstractFactory {
 		assert( $expression instanceof FuncCall || $expression instanceof Assign );
 
 		if ( $expression instanceof FuncCall ) {
-			[$name, $value] = $expression->args;
-			$function       = $expression->name;
-			$expr           = $object->expr;
+			$name     = $expression->args[0];
+			$function = $expression->name;
+			$expr     = $object->expr;
 		} elseif ( $expression instanceof Assign ) {
-			[$name, $value] = $expression->expr->args;
-			$function       = $expression->expr->name;
-			$expr           = $object->expr->expr;
-		}
-
-		// We cannot calculate the name of a variadic consuming define.
-		if ($name instanceof VariadicPlaceholder || $value instanceof VariadicPlaceholder) {
-			// TODO: Does this apply?
-			return;
+			$name     = $expression->expr->args[0];
+			$function = $expression->expr->name;
+			$expr     = $object->expr->expr;
 		}
 
 		$file = $context->search(FileElement::class);
