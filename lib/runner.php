@@ -281,7 +281,7 @@ function export_hooks( array $hooks ) {
 			'line'      => $hook->getLocation()->getLineNumber(),
 			'end_line'  => $hook->getEndLocation()->getLineNumber(),
 			'type'      => $hook->getHookType(),
-			'arguments' => export_arguments( $hook->getArguments() ),
+			'arguments' => wp_list_pluck( export_arguments( $hook->getArguments() ), 'name' ),
 			'doc'       => export_docblock( $hook ),
 		);
 	}
