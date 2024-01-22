@@ -11,6 +11,7 @@ use phpDocumentor\Reflection\Metadata\MetaDataContainer as MetaDataContainerInte
 use phpDocumentor\Reflection\Php\Argument;
 use phpDocumentor\Reflection\Php\Factory\AbstractFactory;
 use phpDocumentor\Reflection\Php\Factory\ContextStack;
+use phpDocumentor\Reflection\Php\Class_;
 use phpDocumentor\Reflection\Php\File as FileElement;
 use phpDocumentor\Reflection\Php\StrategyContainer;
 use phpDocumentor\Reflection\Php\MetadataContainer;
@@ -18,10 +19,10 @@ use phpDocumentor\Reflection\Types\Mixed_;
 use PhpParser\Node\Expr\Assign;
 
 use PhpParser\Node\Expr\FuncCall;
-//PhpParser\Node\Expr\New_
+//PhpParser\Node\Expr\New_ // TODO
 use PhpParser\Node\Expr\MethodCall;
 use PhpParser\Node\Expr\StaticCall;
-//PhpParser\Node\Expr\NullsafeMethodCall
+//PhpParser\Node\Expr\NullsafeMethodCall // TODO
 
 use PhpParser\Node\Expr\Variable;
 
@@ -122,12 +123,38 @@ class Strategy_Uses extends AbstractFactory {
 				$class = explode( '::', (string) $what->getFqsen() )[0];
 				// OK
 			} elseif (
+				$object->expr instanceof MethodCall &&
+				$object->expr->var instanceof Variable
+			) {
+				// TODO: This seems wrong, but the unit tests say this.
+				$class = '$' . (string) $object->expr->var->name;
+			} elseif (
+				$object->expr instanceof MethodCall &&
+				$object->expr->var instanceof FuncCall
+			) {
+				// TODO: This seems wrong, but the unit tests say this.
+				$class = (string) $object->expr->var->name . '()';
+			} elseif (
 				$object->expr instanceof StaticCall &&
 				$object->expr->class instanceof Name
 				//$object->expr instanceof MethodCall
 			) {
 				// TODO: Figure out the namespace for this call...
 				$class = '\\' . (string) $object->expr->class;
+				if ( $class === '\self' ) {
+					// Self needs to know the current class we're in.
+					$search = $context->search( Class_::class );
+					if ( $search ) {
+						$class = (string) $search->getFqsen();
+					}
+				}
+				if ( $class === '\parent' ) {
+					$search = $context->search( Class_::class );
+					if ( $search ) {
+						$class = (string) $search->getParent();
+
+					}
+				}
 			}
 
 			//var_dump( compact( 'what', 'object', 'class' ) ); die();
