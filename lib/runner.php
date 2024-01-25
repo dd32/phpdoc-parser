@@ -58,20 +58,30 @@ function parse_files( $files, $root ) {
 	$project_factory = ProjectFactory::createInstance();
 	
 	// https://github.com/phpDocumentor/Reflection/blob/770440f9922d1e3d118d234fd6ab72048ddc5b05/src/phpDocumentor/Reflection/Php/ProjectFactory.php#L49
+	require_once __DIR__ . '/class-strategy-phpdoc-parser.php';
 	require_once __DIR__ . '/class-strategy-hook.php';
 	require_once __DIR__ . '/class-strategy-uses.php';
 
+	/*
+	 * The first matching strategy is run, which doesn't fit our needs.
+	 *
+	 * As such, we wrap it in a matcher that runs all of our customisations.
+	 */
+	$pretty_printer = new PrettyPrinter();
 	$project_factory->addStrategy(
-		new Strategy_Hook(
+		new Strategy_PHPDoc_Parser(
 			DocBlockFactory::createInstance(),
-			new PrettyPrinter()
-		)
-	);
-
-	$project_factory->addStrategy(
-		new Strategy_Uses(
-			DocBlockFactory::createInstance(),
-			new PrettyPrinter()
+			$pretty_printer,
+			[
+				new Strategy_Hook(
+					DocBlockFactory::createInstance(),
+					$pretty_printer,
+				),
+				new Strategy_Uses(
+					DocBlockFactory::createInstance(),
+					$pretty_printer,
+				)
+			]
 		)
 	);
 
